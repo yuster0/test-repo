@@ -1,0 +1,23 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+---
+title: "Perinatal"
+author: "Yuster"
+date: "1/7/2018"
+output: word_document
+--
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r setup}
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(tidyselect)
+library(readr)
+```
