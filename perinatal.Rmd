@@ -1,0 +1,502 @@
+---
+output:
+  word_document: default
+---
+---
+title: "Perinatal Report"
+author: "Yuster"
+date: "1/7/2018"
+output: word_document
+--
+```{r setup, include=FALSE}
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(tidyselect)
+library(readr)
+library(ggthemes)
+```
+
+## Perinatal Death Analysis Report
+The report of perinatal death in Nakuru County from 2014 to 2017 dataset.
+Perinata Death review forms are filled in the facility where the event occured and uploaded to DHIS2. Of more than 2000 events are available from the system. The dataset were downloaded and data cleaning done to remove data elements that does not fit definition of perinatal death, multiple entries and duplicates were deleted as well as empty columns.
+```{r dataset, include=FALSE}
+perdatn <- readr::read_csv("~/Dropbox/Peri2018.csv")
+perdatn %>% tbl_df()
+```
+
+```{r glimpse, include=FALSE}
+glimpse(perdatn)
+```
+## Distribution of Cases per Year and Organization unit.
+Frequency of number of perinatal death per year.
+
+
+```{r, prop}
+perdatn %>% 
+  with(table(Org_unit, Year)) %>%
+  prop.table(margin=2)*100
+```
+
+```{r, org-unit}
+perdatn %>% ## reported no of perinatal deaths by year in 2015 we had 431  deaths
+  group_by(Org_unit) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+## Nulliparous women versus Multiparous women.
+Babies delivered by Nulliparous women are at greater risk of perinatal risk than multiparous women.The dataset is recorded on number of gravida mother ever had from 22 weeks gestation including the current pregnancy.
+
+```{r recodegravida, include=FALSE}
+perdatn$Mgravrec <- case_when(perdatn$M_gravida <= 1 ~ 'Nulliparous',
+                         perdatn$M_gravida >=2 ~ 'Multiparous')
+```
+```{r, gravida}
+perdatn %>% 
+  group_by(Mgravrec) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+```{r, recode gestation, include=FALSE}
+perdatn$rmgest <- case_when(perdatn$M_gest <= 28 ~ 'Ext preterm',
+                       between(perdatn$M_gest, 28, 32) ~ 'Very preterm',
+                       between(perdatn$M_gest, 33, 37) ~ 'Late preterm',
+                       between(perdatn$M_gest, 38, 40) ~ ' Full term',
+                       perdatn$M_gest >= 41 ~ 'post term')
+```
+## Gestational Weeks
+Using WHO classification of preterm, gestational weeks were classified on extremely preterm (Less than 28 weeks), very preterm(28-32 weeks)
+moderate to late preterm(32-37weeks) and post mature from 41 weeks and above. From the dataset 794 variables were complete with mean gestational
+of 34.5+/- 5.43, Min of 18 weeks and max of 48 weeks with skew of -0.59 and kurtosis of -0.45.
+
+```{r, rgestation}
+perdatn %>% 
+  group_by(rmgest) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq)) 
+```
+## Type of pregnancy
+A total of 765 (82%) of the cases were singleton, less than 15% being twin or triplet.
+
+
+```{r, pregtype}
+perdatn %>% 
+  group_by(preg_type) %>% 
+  summarise(n=n()) %>% 
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+## Presentation of foetus
+Cephalic account for 77% of the perinatal death
+
+```{r, fpresen}
+perdatn %>% 
+  group_by(foetus_pres) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+## Time of Newborn death
+Of the deaths, 60% (557/929) died with 7 days of live.
+```{r, time of newbon}
+perdatn %>% 
+  group_by(t_nb_death) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+# Antenatal Care
+## Did mother receive Antenatal care
+```{r, Antenatal}
+perdatn %>% 
+  group_by(anr_attend) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+## How many antenatal visits done
+```{r, # visits}
+perdatn %>% 
+  group_by(anc_visits) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+```{r, graphancvisit}
+perdatn %>% 
+  filter(anr_attend == "Yes") %>%
+  group_by(anc_visits) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count)) %>% 
+  ggplot + aes( x = anc_visits, y = count,fill = count ) + 
+  geom_bar(stat = "identity",position = position_dodge(0.2), width = 0.5) +
+  geom_text(aes(label = count), vjust = -0.3, size = 3.5) +
+  labs(title="Perinatal deaths vs Number of Antenatal visit") +
+  labs(x="Antenatal Visit", y="No. of Perinatal Deaths") +
+  theme_tufte()
+```
+
+##
+What type of intervention mother received in health facility. Of interest in Tetanus toxoid and iron supplement
+
+```{r, mother rtt}
+perdatn %>% 
+  filter( anr_attend == "Yes") %>%
+  group_by(r_tt) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+```{r, mother ironsupp}
+perdatn %>%
+  filter( anr_attend == "Yes") %>% 
+  with(table(Year,r_fesup)) %>%
+  prop.table(margin=2)*100 
+```
+
+## Danger signs
+Were danger signs identified during the antenatal visit and if so what action were taken.
+
+```{r, dangersigns}
+perdatn %>%
+  filter( anr_attend == "Yes") %>%
+  group_by(iden_dang_sign) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+```{r, were referral done}
+perdatn %>%
+  filter( anr_attend == "Yes") %>% 
+  filter( iden_dang_sign == "Yes") %>%
+  group_by(referral) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+```{r, were intervention given}
+perdatn %>%
+  filter( anr_attend == "Yes") %>% 
+  filter( iden_dang_sign == "Yes") %>%
+  group_by(anti_hyp) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+```{r, were intervention given antibio}
+perdatn %>% 
+  filter( anr_attend == "Yes") %>% 
+  filter( iden_dang_sign == "Yes") %>%
+  group_by(anti_bio) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+## Use of partograph
+Partograph is important tool for identification and appropriate management of women at high risk of maternal complication to avert maternal and perinatal deaths. More than half (52%) [459/884] of the cases were monitor with partograph. 
+
+```{r partograph}
+perdatn %>% 
+  filter (!(loc_del=="Home")) %>% 
+  filter (!(loc_del=="BBA")) %>% 
+  group_by(part_use) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100 * n/sum(n), 0), "%")) %>% 
+  arrange(desc(rel.freq))
+```
+## Mode of delivery
+On Skill delivery 60% were Skilled Birth attendant delivery and 31% through caesarian section.
+```{r, mode of delivery}
+perdatn %>% 
+  group_by(mod) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100*n/sum(n),0),"%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+## Those at risk 
+For those at risk what delivery mod was conducted of interest are there some who delivered at home or born before arrival
+```{r, at risk vs mode of delivery}
+perdatn %>% 
+  filter( iden_dang_sign == "Yes") %>%
+  group_by(mod) %>% 
+  summarise (n=n()) %>%
+  mutate(rel.freq = paste0(round(100*n/sum(n),0),"%")) %>% 
+  arrange(desc(rel.freq))
+```
+
+## Who conducted delivery.
+Where any delivery conducted by Unskilled Birth Attendant
+```{r, who conducted delivery}
+perdatn %>%
+  group_by(who_del) %>% 
+  summarise(n=n()) %>% 
+  mutate(rel.freq = paste0(round(100*n/sum(n),0),"%"))
+```
+
+
+```{r, mod of delivery vs foetus presentation}
+  ggplot(perdatn, aes(x = mod, fill = foetus_pres),alpha=0.8) +
+    geom_bar() +
+    coord_flip() +
+    theme_classic()
+```
+
+```{r epicalc, include=FALSE}
+library (epicalc)
+library(Epi)
+library(epiR)
+library(epiDisplay)
+library(nnet)
+```
+
+
+```{r, twoby2 labour where started}
+twoby2( perdatn$lab_loc_st, perdatn$c_baby_birth)
+perdatn$c_baby_birth <- as.factor(perdatn$c_baby_birth)
+perdatn$c_baby_birth <- relevel(perdatn$c_baby_birth, ref="Alive")
+twoby2( perdatn$lab_loc_st=="Tier2", perdatn$c_baby_birth)
+twoby2( perdatn$anc_visits, perdatn$c_baby_birth=="Fresh still birth")
+perdatn$anc_visits <- as.factor(perdatn$anc_visits)
+perdatn$anc_visits <- relevel(perdatn$anc_visits, ref="Once")
+twoby2( perdatn$foetus_pres, perdatn$c_baby_birth)
+twoby2( perdatn$foetus_pres, perdatn$c_baby_birth=="Fresh still birth")
+perdatn$foetus_pres <- as.factor(perdatn$foetus_pres)
+perdatn$foetus_pres <- relevel(perdatn$foetus_pres, ref="Cephalic")
+
+glm2 <- glm(c_baby_birth ~ foetus_pres, family=binomial, data=perdatn)
+logistic.display(glm2,crude.p.value=TRUE)
+perdatn$anc_visits <- relevel(perdatn$anc_visits, ref="Four times")
+glm1<- glm(c_baby_birth ~ anc_visits, family=binomial, data=perdatn)
+logistic.display(glm1,crude.p.value=TRUE)
+
+
+```
+Using Multi hazard odd ratio
+```{r, MHOR, for risk facrors}
+library(epicalc)
+mhor(perdatn$c_baby_birth,perdatn$lab_rupm,perdatn$fhs_abn)
+cc(perdatn$c_baby_birth,perdatn$anc_visits)
+perdatn$anc_visits <- relevel(perdatn$anc_visits, ref="Four times")
+mhor(perdatn$c_baby_birth=="Fresh still birth", perdatn$anc_visits)
+cc(perdatn$c_baby_birth=="Fresh still birth", perdatn$part_use=="No") 
+cc(perdatn$cbaby,perdatn$part_use)
+```
+```{r, recode the outcome}
+perdatn$cbaby <- case_when(perdatn$c_baby_birth =="Fresh still birth"  ~ '1',
+                              perdatn$c_baby_birth  =="Alive"~ '3',
+                               perdatn$c_baby_birth =="Macerated stillbirth" ~ '2') 
+
+```
+
+
+
+```{r, recode parity}
+perdatn$Mgravrec <- case_when(perdatn$M_gravida <= 1 ~ 'Nulliparous',
+                            between(perdatn$M_gravida,1,2) ~ 'Para 2+',
+                            perdatn$M_gravida >= 3 ~ 'Para 3+')
+
+perdatn$gravrec <- case_when(perdatn$M_gravida <= 1 ~ 'Nulliparous',
+                             perdatn$M_gravida >= 1 ~ 'Multiparous')
+
+
+```
+
+```{r, recoding of btw, gestation}
+
+perdatn$recbwt <- case_when(perdatn$bwt <= 500 ~ '<=500',
+                          between(perdatn$bwt,501,1000) ~ '501-1000',
+                          between(perdatn$bwt, 1001, 1500) ~ '1001-1500',
+                          between(perdatn$bwt, 1501, 2500) ~ '1501-2500',
+                          between(perdatn$bwt, 2501, 3500) ~ ' 2501-3500',
+                          between(perdatn$bwt, 3501, 4000) ~ '3501-4000 ',
+                          perdatn$bwt >= 4001 ~ '>= 4001')  
+   
+perdatn$Mgest <- case_when(perdatn$M_gest <= 22 ~ '<22',
+                           between(perdatn$M_gest, 22, 27)~'22-27',
+                           between(perdatn$M_gest, 28, 31)~'28-31',
+                           between(perdatn$M_gest, 32, 36)~'32-36',
+                           between(perdatn$M_gest, 37, 41)~'37-41',
+                           perdatn$M_gest >= 42 ~ '42+')   
+```
+
+```{r, factor labelling}
+
+perdatn$anc_visits <- relevel(perdatn$anc_visits, ref="Four times")
+perdatn$anc_visits <- as.factor(perdatn$anc_visits)
+perdatn$cord_prol<- relevel(perdatn$cord_prol, ref="Yes")
+perdatn$cord_prol <- as.factor(perdatn$cord_prol)
+perdatn$anc_visits <- as.factor(perdatn$anc_visits)
+perdatn$anc_visits <- relevel(perdatn$anc_visits,ref ="Four")
+perdatn$c_baby_birth <- as.factor(perdatn$c_baby_birth)
+perdatn$c_baby_birth <- relevel(perdatn$c_baby_birth, ref="Macerated stillbirth")
+```
+
+```{r, analysis of risk factor, glm}
+glm0 <- glm(c_baby_birth=="Fresh still birth"~ Mgravrec=="Nulliparous" , family=binomial, data=perdatn)
+summary(glm0)
+logistic.display(glm0)
+exp(coef(glm0))
+exp(cbind(OR=coef(glm0), confint(glm0)))
+
+
+glm3 <- glm(c_baby_birth=="Macerated stillbirth"~ anc_visits=="Once", family=binomial, data=perdatn)
+summary(glm3)
+logistic.display(glm3)
+exp(coef(glm3))
+exp(cbind(OR=coef(glm3), confint(glm3)))
+glm4 <- glm(c_baby_birth=="Fresh still birth"~ referral, family=binomial, data=perdatn)
+summary(glm4)
+logistic.display(glm4)
+exp(coef(glm3))
+exp(cbind(OR=coef(glm4), confint(glm4)))
+
+glm5 <- glm(c_baby_birth=="Fresh still birth"~ lab_loc_st, family=binomial, data=perdatn)
+summary(glm5)
+logistic.display(glm5)
+exp(coef(glm3))
+exp(cbind(OR=coef(glm5), confint(glm5)))
+
+
+glm4 <- glm(c_baby_birth=="Fresh still birth"~perdatn$cord_prol=="Yes", 
+            family=binomial, data=perdatn)
+summary(glm4)
+logistic.display(glm4)
+exp(coef(glm3))
+exp(cbind(OR=coef(glm4), confint(glm4)))
+table(perdatn$c_baby_birth, perdatn$loc_del)
+
+glm6 <- glm(c_baby_birth=="Fresh still birth"~perdatn$anc_visits, 
+            family=binomial, data=perdatn)
+summary(glm6)
+exp(cbind(OR=coef(glm6), confint(glm6)))
+
+glm7 <- glm(c_baby_birth=="Macerated stillbirth"~perdatn$anc_visits, 
+            family=binomial, data=perdatn)
+summary(glm7)
+exp(cbind(OR=coef(glm7), confint(glm7)))
+
+glm8 <- glm(c_baby_birth=="Fresh still birth"~perdatn$referral, 
+            family=binomial, data=perdatn)
+summary(glm8)
+exp(cbind(OR=coef(glm8), confint(glm8)))
+cc(perdatn$c_baby_birth=="Fresh still birth", perdatn$recbwt)
+glm9 <- glm(c_baby_birth~recbwt, 
+            family=binomial, data=perdatn)
+summary(glm9)
+exp(cbind(OR=coef(glm9), confint(glm9)))
+glm10 <- glm(c_baby_birth=="Fresh still birth"~apg5,family=binomial, data=perdatn)
+summary(glm10)
+exp(cbind(OR=coef(glm10), confint(glm10)))
+```
+
+```{r, logistic regression}
+## Logistic regression
+glm0 <- glm(c_baby ~ anc_visits, family=binomial, data=perdatn)
+summary(glm0)
+logistic.display(glm0)
+glimpse(perdatn)
+perdatn$loc_labr <- as.factor(perdatn$loc_labr)
+preg_type <- relevel(perdatn$preg_type, ref =1)
+
+perdatn$preg_type <- as.factor(perdatn$preg_type)
+
+m <- glm(c_baby ~ preg_type*loc_labr+bwt, family=binomial, data = perdatn)
+logistic.display(m, decimal=1)
+m1 <- glm(c_baby ~ preg_type*preg_type+lab_rupm, family=binomial, data = perdatn)
+logistic.display(m1, decimal=1)
+
+m2 <- glm(c_baby ~ preg_type*preg_type+pre_eclampsia, family=binomial, data = perdatn)
+logistic.display(m2, decimal=1)
+
+m3 <- glm(cr_baby ~ foetus_pres*part_use +pre_eclampsia, family=binomial, data = perdatn)
+logistic.display(m3, decimal=1)
+
+m4 <- glm(cr_baby ~ part_use*referral +pre_eclampsia, family=binomial, data = perdatn)
+summary(m4, decimal=1)
+logistic.display(m4, decimal=1)
+glimpse(perdatn)
+
+perdatn$gravrec <- as.factor(perdatn$gravrec)
+perdatn$Mgravrec <- relevel(perdatn$Mgravrec, ref="Para 2+")
+
+perdatn$c_baby_birth <- as.factor(perdatn$c_baby_birth)
+perdatn$c_baby_birth <- relevel(perdatn$c_baby_birth, ref="Fresh still birth")
+library(dplyr)
+glm10 <- glm(c_baby_birth ~ loc_del, family=binomial, data=perdatn)
+summary(glm10)
+exp(cbind(OR=coef(glm10), confint(glm10)))
+
+perdatn$lab_loc_st <- as.factor(perdatn$lab_loc_st)
+perdatn$lab_loc_st <- relevel(perdatn$lab_loc_st, ref="Tier2")
+
+perdatn$c_baby_birth <- as.factor(perdatn$c_baby_birth)
+perdatn$c_baby_birth <- relevel(perdatn$c_baby_birth, ref="Fresh still birth")
+twoby2(perdatn$lab_loc_st,perdatn$c_baby_birth)
+twoby2(perdatn$referral,perdatn$c_baby_birth)
+
+perdatn$foetus_pres <- as.factor(perdatn$foetus_pres)
+perdatn$foetus_pres<- relevel(perdatn$foetus_pres, ref="Breech")
+
+perdatn$preg_type <- as.factor(perdatn$preg_type)
+perdatn$preg_type <- relevel(perdatn$preg_type, ref="Twin")
+
+perdatn$recbwt <- as.factor(perdatn$recbwt)
+perdatn$recbwt <- relevel(perdatn$recbwt, ref=">= 4001")
+
+twoby2(perdatn$recbwt,perdatn$c_baby_birth)
+
+perdatn$rmgest <- as.factor(perdatn$rmgest)
+perdatn$rmgest <- relevel(perdatn$rmgest,ref="Full term")
+
+twoby2(perdatn$rmgest,perdatn$c_baby_birth)
+
+cc(perdatn$c_baby_birth, perdatn$loc_del)
+twoby2(perdatn$c_baby_birth,perdatn$loc_del)
+twoby2(perdatn$loc_del,perdatn$c_baby_birth=="Alive")
+perdatn$loc_del <- as.factor(perdatn$loc_del)
+perdatn$loc_del <- relevel(perdatn$loc_del, ref="Health Centre")
+glimpse(perdatn)
+twoby2(perdatn$gravrec,perdatn$c_baby_birth)
+
+perdatn$refery <- perdatn$referral=="Yes"
+cs(perdatn$c_baby_birth, perdatn$refery)
+cs(perdatn$refer,perdatn$c_baby_birth)
+
+
+cc(perdatn$c_baby_birth, perdatn$Mgravrec)
+cc(perdatn$c_baby_birth=="Alive", perdatn$anc_visits)
+cc(perdatn$cr_baby, perdatn$anc_visits)
+
+md1 <- glm(c_baby ~  ancvisits + loc_labr , data = perdatn, family = "binomial")
+summary(md1, decimal=1)
+mod1 <- glm(c_baby ~ preg_type+pre_eclampsia + anc_visits + loc_labr+bwt + ante_partum, data = perdatn, family = "binomial")
+summary(mod1, decimal=1)
+logistic.display(mod1, decimal=1)
+plot(mod1,2)
+plot(mod1,1)
+
+drop1(mod1, .~., test = "Chisq")
+library(prettyR)
+plot(naclus(perdatn))
+```
+Logistics try this one
+
+```{r, use right one}
+mod <- glm(c_baby_birth ~lab_loc_st + anc_visits + recbwt+ Mgravrec + part_use, data = perdatn, family = "binomial")
+summary(mod)
+library(epicalc)
+logistic.display(mod)
+exp(cbind(OR=coef(mod), confint(mod)))
+drop1(mod, .~., test = "Chisq")
+
+```
