@@ -1,7 +1,7 @@
 ---
 output:
+  pdf_document: default
   word_document: default
-  html_document: default
 ---
 ---
 title: "Perinatal"
@@ -10,14 +10,54 @@ date: "1/7/2018"
 output: word_document
 --
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
-```{r setup}
 library(dplyr)
 library(tidyr)
 library(tidyverse)
 library(tidyselect)
 library(readr)
 ```
+
+## r notes
+The report of perinatal death in Nakuru County from 2014 to 2017 dataset.
+Perinata Death review forms are filled in the facility where the event occured and uploaded to DHIS2.Of more than 2000 events are available from the system. The dataset were downloaded and data cleaning done to remove data elements that does not fit definition of perinatal death, multiple entries and duplicates were deleted as well as empty columns.
+```{r dataset, include=FALSE}
+perdatn <- readr::read_csv("~/Dropbox/Peri2018.csv")
+```
+
+```{r glimpse, include=FALSE}
+glimpse(perdatn)
+```
+
+```{r, prop}
+perdatn %>% 
+  with(table(Org_unit, Year)) %>%
+  prop.table(margin=2)*100
+```
+```{r, org-unit}
+perdatn %>% ## reported no of perinatal deaths by year in 2015 we had 431  deaths
+  group_by(Org_unit) %>% 
+  summarise(count = n()) %>% 
+  mutate(rfreq = count/sum(count)*100) %>%     ## relative frequency 
+  arrange(desc(rfreq))
+```
+
+## rmarkdown
+Babies delivered by Nulliparous women are at greater risk of perinatal risk than multiparous women.The dataset is recorded on number of gravida mother ever had from 22 weeks gestation including the current pregnancy.
+
+```{r recodegravida, include=FALSE}
+perdatn$Mgravrec <- case_when(perdatn$M_gravida <= 1 ~ 'Nulliparous',
+                         perdatn$M_gravida >=2 ~ 'Multiparous')
+```
+```{r, gravida}
+perdatn %>% 
+  group_by(Mgravrec) %>% 
+  summarise(count=n()) %>% 
+  mutate(rfreq= count/sum(count)*100) %>% 
+  arrange(desc(rfreq))
+```
+
+
+
+
+
+
