@@ -2,7 +2,7 @@ library(dplyr)
 library(tidyr)
 library(tidyverse)
 library(tidyselect)
-library(sf)
+library(readr)
 
 perdatn <- readr::read_csv("~/Dropbox/Peri2018.csv")
 perdatn %>% tbl_df() ## change the data to dataframe
