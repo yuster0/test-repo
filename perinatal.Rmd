@@ -55,6 +55,30 @@ perdatn %>%
   mutate(rfreq= count/sum(count)*100) %>% 
   arrange(desc(rfreq))
 ```
+```{r, recode gestation, include=FALSE}
+perdatn$rmgest <- case_when(perdatn$M_gest <= 18 ~ 'Gest zero',
+                       between(perdatn$M_gest, 20, 21) ~ 'Gest 20=21',
+                       between(perdatn$M_gest, 22, 23) ~ 'Gest 22=23',
+                       between(perdatn$M_gest, 24, 27) ~ ' Gest 24=27',
+                       between(perdatn$M_gest, 28, 31) ~ 'Gest 28=31 ',
+                       between(perdatn$M_gest, 32, 36) ~ 'Gest 32=36',
+                       perdatn$M_gest >= 37 ~ 'post mature')
+```
+```{r, rgestation}
+perdatn %>% 
+  group_by(rmgest) %>% 
+  summarise(count=n()) %>% 
+  mutate(rfreq= count/sum(count)*100) %>% 
+  arrange(desc(rfreq))
+```
+
+
+
+
+
+
+
+
 
 
 
