@@ -1,6 +1,5 @@
 ---
 output:
-  pdf_document: default
   word_document: default
 ---
 ---
@@ -33,11 +32,13 @@ perdatn %>%
   with(table(Org_unit, Year)) %>%
   prop.table(margin=2)*100
 ```
+
 ```{r, org-unit}
 perdatn %>% ## reported no of perinatal deaths by year in 2015 we had 431  deaths
   group_by(Org_unit) %>% 
   summarise(count = n()) %>% 
-  mutate(rfreq = count/sum(count)*100) %>%     ## relative frequency 
+  mutate(rfreq = count/sum(count)*100) %>% 
+  mutate_if(is.numeric, funs(round(., 0))) %>% ## relative frequency 
   arrange(desc(rfreq))
 ```
 
@@ -52,32 +53,62 @@ perdatn$Mgravrec <- case_when(perdatn$M_gravida <= 1 ~ 'Nulliparous',
 perdatn %>% 
   group_by(Mgravrec) %>% 
   summarise(count=n()) %>% 
-  mutate(rfreq= count/sum(count)*100) %>% 
+  mutate(rfreq= count/sum(count)*100) %>%
+  mutate_if(is.numeric, funs(round(., 1))) %>% 
   arrange(desc(rfreq))
 ```
 ```{r, recode gestation, include=FALSE}
-perdatn$rmgest <- case_when(perdatn$M_gest <= 18 ~ 'Gest zero',
-                       between(perdatn$M_gest, 20, 21) ~ 'Gest 20=21',
-                       between(perdatn$M_gest, 22, 23) ~ 'Gest 22=23',
-                       between(perdatn$M_gest, 24, 27) ~ ' Gest 24=27',
-                       between(perdatn$M_gest, 28, 31) ~ 'Gest 28=31 ',
-                       between(perdatn$M_gest, 32, 36) ~ 'Gest 32=36',
-                       perdatn$M_gest >= 37 ~ 'post mature')
+perdatn$rmgest <- case_when(perdatn$M_gest <= 28 ~ 'Ext preterm',
+                       between(perdatn$M_gest, 28, 32) ~ 'Very preterm',
+                       between(perdatn$M_gest, 33, 37) ~ 'Late preterm',
+                       between(perdatn$M_gest, 38, 40) ~ ' Full term',
+                       perdatn$M_gest >= 41 ~ 'post term')
 ```
+## Gestational Weeks
+Using WHO classification of preterm, gestational weeks were classified on extremely preterm (Less than 28 weeks), very preterm(28-32 weeks)
+moderate to late preterm(32-37weeks) and post mature from 41 weeks and above. From the dataset 794 varibales were complete with mean gestational
+of 34.5+/- 5.43, Min of 18 weeks and max of 48 weeks with skew of -0.59 and kurtosis of -0.45.
+
 ```{r, rgestation}
 perdatn %>% 
   group_by(rmgest) %>% 
   summarise(count=n()) %>% 
   mutate(rfreq= count/sum(count)*100) %>% 
+  mutate_if(is.numeric, funs(round(., 1))) %>% 
   arrange(desc(rfreq))
 ```
+## Type of pregnancy
+A total of 765 (82%) of the cases were singleton, less than 15% being twin or triplet.
 
+```{r, pregtype}
+perdatn %>% 
+  group_by(preg_type) %>% 
+  summarise(count=n()) %>% 
+  mutate(rfreq= count/sum(count)*100) %>% 
+  mutate_if(is.numeric, funs(round(., 1))) %>% 
+  arrange(desc(rfreq))
+```
+## Presentation of foetus
+Cephalic account for 77% of the perinatal death
 
-
-
-
-
-
+```{r, fpresen}
+perdatn %>% 
+  group_by(foetus_pres) %>% 
+  summarise(count=n()) %>% 
+  mutate(rfreq= count/sum(count)*100) %>% 
+  mutate_if(is.numeric, funs(round(., 1))) %>% 
+  arrange(desc(rfreq))
+```
+## Time of Newborn death
+Of the deaths, 60% (557/929) died with 7 days of live.
+```{r, timeof newborn}
+perdatn %>% 
+  group_by(t_nb_death) %>% 
+  summarise(count=n()) %>% 
+  mutate(rfreq= count/sum(count)*100) %>% 
+  mutate_if(is.numeric, funs(round(., 1))) %>% 
+  arrange(desc(rfreq))
+```
 
 
 
