@@ -2,11 +2,7 @@ library(dplyr)
 library(tidyr)
 library(tidyverse)
 library(tidyselect)
-<<<<<<< HEAD
 library(sf)
-=======
-library(readr)
->>>>>>> 299bf38ce19853a8d19931d23f5e1f33163935e6
 
 perdatn <- readr::read_csv("~/Dropbox/Peri2018.csv")
 perdatn %>% tbl_df() ## change the data to dataframe
